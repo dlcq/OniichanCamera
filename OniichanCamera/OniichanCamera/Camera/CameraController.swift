@@ -414,21 +414,19 @@ final class CameraController: NSObject, ObservableObject {
             try? device.lockForConfiguration()
             defer { device.unlockForConfiguration() }
 
-            if self.isManualWhiteBalanceEnabled && device.isWhiteBalanceModeSupported(.locked) {
+            if self.isManualWhiteBalanceEnabled && device.isWhiteBalanceModeSupported(.locked)
+                && device.isLockingWhiteBalanceWithCustomDeviceGainsSupported {
                 // 色温度 / ティント → 色度座標 → WB ゲイン に変換してロックする
                 let chromaticity = Self.chromaticity(kelvin: self.whiteBalanceKelvin, tint: self.whiteBalanceTint)
                 var gains = device.deviceWhiteBalanceGains(for: chromaticity)
                 let maxGain = max(device.maxWhiteBalanceGain, 1.0)
-                // 各ゲイン成分（3つのFloat）を [1.0, maxWhiteBalanceGain] に丸める。
-                // SDK の構造体フィールド名に依存しないよう、メモリ上の Float 3 要素に対して適用する。
-                withUnsafeMutableBytes(of: &gains) { raw in
-                    let values = raw.bindMemory(to: Float.self)
-                    for index in 0..<min(values.count, 3) {
-                        values[index] = Swift.min(Swift.max(values[index], 1.0), maxGain)
-                    }
-                }
+                // 各ゲインは [1.0, maxWhiteBalanceGain] の範囲に丸める（範囲外は例外になる）
+                gains.redGain = min(max(gains.redGain, 1.0), maxGain)
+                gains.greenGain = min(max(gains.greenGain, 1.0), maxGain)
+                gains.blueGain = min(max(gains.blueGain, 1.0), maxGain)
                 device.setWhiteBalanceModeLocked(with: gains, completionHandler: nil)
             } else if device.isWhiteBalanceModeSupported(.continuousAutoWhiteBalance) {
+                // カスタムゲインに非対応のカメラ（一部の前面カメラ等）では自動 WB にフォールバックする
                 device.whiteBalanceMode = .continuousAutoWhiteBalance
             }
         }

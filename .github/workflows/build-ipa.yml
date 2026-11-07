@@ -22,18 +22,6 @@ jobs:
           xcodebuild -version
           swift --version
 
-      - name: SDK diagnostics (AVCaptureDevice white balance API)
-        run: |
-          SDK=$(xcrun --sdk iphoneos --show-sdk-path)
-          HDR="$SDK/System/Library/Frameworks/AVFoundation.framework/Headers/AVCaptureDevice.h"
-          NOTES="$SDK/System/Library/Frameworks/AVFoundation.framework/Headers/AVFoundation.apinotes"
-          echo "== AVCaptureDevice.h white balance section (1530-1660) =="
-          sed -n '1530,1660p' "$HDR"
-          echo "== AVCaptureDevice.h Gains method declarations =="
-          grep -n "Gains" "$HDR" | head -40
-          echo "== apinotes entries mentioning Gains / Chromaticity / TemperatureAndTint =="
-          grep -n -B2 -A6 "Gains\|Chromaticity\|TemperatureAndTint" "$NOTES" | head -160
-
       - name: Build (Release / iphoneos, unsigned)
         run: |
           xcodebuild build \
