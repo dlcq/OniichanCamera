@@ -417,7 +417,7 @@ final class CameraController: NSObject, ObservableObject {
             if self.isManualWhiteBalanceEnabled && device.isWhiteBalanceModeSupported(.locked) {
                 // 色温度 / ティント → 色度座標 → WB ゲイン に変換してロックする
                 let chromaticity = Self.chromaticity(kelvin: self.whiteBalanceKelvin, tint: self.whiteBalanceTint)
-                var gains = device.whiteBalanceGains(for: chromaticity)
+                var gains = device.deviceWhiteBalanceGains(for: chromaticity)
                 let maxGain = max(device.maxWhiteBalanceGain, 1.0)
                 gains.redPower = min(max(gains.redPower, 1.0), maxGain)
                 gains.greenPower = min(max(gains.greenPower, 1.0), maxGain)
