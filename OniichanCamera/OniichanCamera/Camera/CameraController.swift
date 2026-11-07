@@ -217,8 +217,8 @@ final class CameraController: NSObject, ObservableObject {
     private static func bestDevice(for position: AVCaptureDevice.Position) -> AVCaptureDevice? {
         let types: [AVCaptureDevice.DeviceType]
         if position == .back {
-            types = [.builtInTripleCamera, .builtInDualCamera, .builtInWideAngleCamera,
-                     .builtInUltraWideAngleCamera, .builtInTelephotoCamera]
+            types = [.builtInTripleCamera, .builtInDualWideCamera, .builtInDualCamera,
+                     .builtInWideAngleCamera, .builtInTelephotoCamera]
         } else {
             types = [.builtInWideAngleCamera, .builtInTrueDepthCamera]
         }
@@ -415,11 +415,18 @@ final class CameraController: NSObject, ObservableObject {
             defer { device.unlockForConfiguration() }
 
             if self.isManualWhiteBalanceEnabled && device.isWhiteBalanceModeSupported(.locked) {
-                let values = AVCaptureDevice.WhiteBalanceTemperatureAndTintValues(
+                let temperatureAndTint = AVCaptureDevice.WhiteBalanceTemperatureAndTintValues(
                     temperature: Float(min(max(self.whiteBalanceKelvin, 2000), 10000)),
                     tint: Float(min(max(self.whiteBalanceTint, -150), 150))
                 )
-                device.setWhiteBalanceModeLocked(with: values, completionHandler: nil)
+                // 色温度 / ティント → 色度 → WB ゲイン に変換してロックする
+                let chromaticity = device.chromaticityValues(for: temperatureAndTint)
+                var gains = device.whiteBalanceGains(for: chromaticity)
+                let maxGain = max(device.maxWhiteBalanceGain, 1.0)
+                gains.redPower = min(max(gains.redPower, 1.0), maxGain)
+                gains.greenPower = min(max(gains.greenPower, 1.0), maxGain)
+                gains.bluePower = min(max(gains.bluePower, 1.0), maxGain)
+                device.setWhiteBalanceModeLocked(with: gains, completionHandler: nil)
             } else if device.isWhiteBalanceModeSupported(.continuousAutoWhiteBalance) {
                 device.whiteBalanceMode = .continuousAutoWhiteBalance
             }
@@ -550,7 +557,7 @@ final class CameraController: NSObject, ObservableObject {
         }
 
         settings.photoQualityPrioritization = .quality
-        if videoDeviceInput?.device?.hasFlash == true {
+        if videoDeviceInput?.device.hasFlash == true {
             settings.flashMode = flashMode.avFlashMode
         }
         return settings

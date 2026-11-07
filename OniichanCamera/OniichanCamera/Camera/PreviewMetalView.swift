@@ -1,6 +1,7 @@
 import Metal
 import MetalKit
 import CoreImage
+import SwiftUI
 import UIKit
 
 /// Core Image の出力を Metal で表示するプレビュービュー。

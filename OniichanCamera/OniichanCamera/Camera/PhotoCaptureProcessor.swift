@@ -67,7 +67,8 @@ final class PhotoCaptureProcessor: NSObject, AVCapturePhotoCaptureDelegate {
         }
 
         baseMetadata = photo.metadata
-        resolvedIsRaw = photo.resolvedSettings.isRawPhoto
+        // RAW 撮影かどうかは自分たちで作成した設定（format）から判定する
+        resolvedIsRaw = format.isRaw
 
         if resolvedIsRaw {
             rawFileData = photo.fileDataRepresentation()

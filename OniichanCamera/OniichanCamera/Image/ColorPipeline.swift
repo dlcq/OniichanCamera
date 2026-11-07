@@ -103,7 +103,7 @@ final class ColorPipeline {
         if adjustments.contrast != 0 || adjustments.highlights != 0 || adjustments.shadows != 0 || adjustments.fade != 0 {
             if let filter = CIFilter(name: "CIToneCurve") {
                 filter.setValue(image, forKey: kCIInputImageKey)
-                let points = toneCurvePoints(for: adjustments)
+                let points = Self.toneCurvePoints(for: adjustments)
                 for (index, point) in points.enumerated() {
                     filter.setValue(CIVector(x: point.x, y: point.y), forKey: "inputPoint\(index)")
                 }
@@ -209,7 +209,7 @@ final class ColorPipeline {
         ]
     }
 
-    private func clampUnit(_ value: Double) -> Double {
+    private static func clampUnit(_ value: Double) -> Double {
         min(max(value, 0), 1)
     }
 

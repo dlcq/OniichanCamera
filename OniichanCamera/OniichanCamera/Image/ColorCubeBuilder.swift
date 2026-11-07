@@ -13,7 +13,7 @@ enum ColorCubeBuilder {
         let amount = clamp(intensity, 0, 1)
         return cubeData(dimension: dimension) { rgb in
             let transformed = apply(recipe: recipe, to: rgb)
-            return mix(rgb, transformed, amount)
+            return mix(rgb, transformed, Float(amount))
         }
     }
 

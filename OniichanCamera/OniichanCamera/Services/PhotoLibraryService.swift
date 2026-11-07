@@ -69,7 +69,10 @@ final class PhotoLibraryService {
         PHPhotoLibrary.shared().performChanges {
             let request = PHAssetCreationRequest.forAsset()
             if let rawData {
-                request.addResource(with: .raw, data: rawData, options: nil)
+                // DNG は無改変で保存する（ルックや調整は現像済みコピー側にのみ適用）
+                let rawOptions = PHAssetResourceCreationOptions()
+                rawOptions.originalFilename = "OniichanCamera-RAW.dng"
+                request.addResource(with: .alternatePhoto, data: rawData, options: rawOptions)
             }
             if let processedData {
                 request.addResource(with: .photo, data: processedData, options: nil)
