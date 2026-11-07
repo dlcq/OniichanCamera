@@ -419,9 +419,14 @@ final class CameraController: NSObject, ObservableObject {
                 let chromaticity = Self.chromaticity(kelvin: self.whiteBalanceKelvin, tint: self.whiteBalanceTint)
                 var gains = device.deviceWhiteBalanceGains(for: chromaticity)
                 let maxGain = max(device.maxWhiteBalanceGain, 1.0)
-                gains.redPower = min(max(gains.redPower, 1.0), maxGain)
-                gains.greenPower = min(max(gains.greenPower, 1.0), maxGain)
-                gains.bluePower = min(max(gains.bluePower, 1.0), maxGain)
+                // 各ゲイン成分（3つのFloat）を [1.0, maxWhiteBalanceGain] に丸める。
+                // SDK の構造体フィールド名に依存しないよう、メモリ上の Float 3 要素に対して適用する。
+                withUnsafeMutableBytes(of: &gains) { raw in
+                    let values = raw.bindMemory(to: Float.self)
+                    for index in 0..<min(values.count, 3) {
+                        values[index] = Swift.min(Swift.max(values[index], 1.0), maxGain)
+                    }
+                }
                 device.setWhiteBalanceModeLocked(with: gains, completionHandler: nil)
             } else if device.isWhiteBalanceModeSupported(.continuousAutoWhiteBalance) {
                 device.whiteBalanceMode = .continuousAutoWhiteBalance
