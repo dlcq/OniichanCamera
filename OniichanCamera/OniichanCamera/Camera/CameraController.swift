@@ -415,12 +415,8 @@ final class CameraController: NSObject, ObservableObject {
             defer { device.unlockForConfiguration() }
 
             if self.isManualWhiteBalanceEnabled && device.isWhiteBalanceModeSupported(.locked) {
-                let temperatureAndTint = AVCaptureDevice.WhiteBalanceTemperatureAndTintValues(
-                    temperature: Float(min(max(self.whiteBalanceKelvin, 2000), 10000)),
-                    tint: Float(min(max(self.whiteBalanceTint, -150), 150))
-                )
-                // 色温度 / ティント → 色度 → WB ゲイン に変換してロックする
-                let chromaticity = device.chromaticityValues(for: temperatureAndTint)
+                // 色温度 / ティント → 色度座標 → WB ゲイン に変換してロックする
+                let chromaticity = Self.chromaticity(kelvin: self.whiteBalanceKelvin, tint: self.whiteBalanceTint)
                 var gains = device.whiteBalanceGains(for: chromaticity)
                 let maxGain = max(device.maxWhiteBalanceGain, 1.0)
                 gains.redPower = min(max(gains.redPower, 1.0), maxGain)
@@ -431,6 +427,33 @@ final class CameraController: NSObject, ObservableObject {
                 device.whiteBalanceMode = .continuousAutoWhiteBalance
             }
         }
+    }
+
+    /// ケルビン / ティントから CIE 1931 色度座標を近似計算する。
+    /// （Planckian locus の多項式近似。1667K〜25000K）
+    private static func chromaticity(kelvin: Double, tint: Double) -> AVCaptureDevice.WhiteBalanceChromaticityValues {
+        let t = min(max(kelvin, 1667), 25000)
+        let t2 = t * t
+        let t3 = t2 * t
+        let x: Double
+        if t <= 4000 {
+            x = -0.2661239e9 / t3 - 0.2343580e6 / t2 + 0.8776956e3 / t + 0.179910
+        } else {
+            x = -3.0258469e9 / t3 + 2.1070379e6 / t2 + 0.2226347e3 / t + 0.240390
+        }
+        let x2 = x * x
+        let x3 = x2 * x
+        let y: Double
+        if t <= 2222 {
+            y = -1.1063814 * x3 - 1.34811020 * x2 + 2.18555832 * x - 0.20219683
+        } else if t <= 4000 {
+            y = -0.9549476 * x3 - 1.37418593 * x2 + 2.09137015 * x - 0.16748867
+        } else {
+            y = 3.0817580 * x3 - 5.87338670 * x2 + 3.75112997 * x - 0.37001483
+        }
+        // ティント（正 = マゼンタ）を y 方向のずれとして近似する
+        let tintedY = y + tint * 0.0004
+        return AVCaptureDevice.WhiteBalanceChromaticityValues(x: Float(x), y: Float(tintedY))
     }
 
     // MARK: - AE / AF lock
