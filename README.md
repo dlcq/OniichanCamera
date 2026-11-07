@@ -184,3 +184,29 @@ OniichanCamera/
 6. タイマー / 連写 / サイレント撮影（利用可能な地域）が動作する
 7. ヒストグラム・ゼブラ・ピーク・水平器が個別にオン・オフできる
 8. バックグラウンド移行 → 復帰でカメラが正常に再開する
+
+---
+
+## 9. GitHub Actions / リリース
+
+リポジトリ： https://github.com/dlcq/OniichanCamera
+
+| トリガー | 実行内容 |
+| --- | --- |
+| `main` への push | macOS (Xcode 16) で Release / iphoneos ビルド → IPA をパッケージ → 成果物 (artifact) としてアップロード |
+| `v*` タグの push | 同上 + **GitHub Releases に IPA を添付** |
+
+- ワークフロー： `.github/workflows/build-ipa.yml`
+- ビルドは CI 上で署名なし（`CODE_SIGNING_ALLOWED=NO`）で行われるため、公開中の IPA は**未署名**です。
+  実機にインストールする場合は、自分の Apple Developer 証明書で署名してください（例：
+  Xcode でプロジェクトを開き Signing & Capabilities でチームを選択して Archive →
+  Distribute App、または `Payload/OniichanCamera.app` を `codesign` で再署名して再パッケージ）。
+- リリース： https://github.com/dlcq/OniichanCamera/releases
+
+新しいバージョンを公開するには：
+
+```bash
+git tag -a v1.1.0 -m "OniichanCamera 1.1.0"
+git push origin v1.1.0
+```
+
