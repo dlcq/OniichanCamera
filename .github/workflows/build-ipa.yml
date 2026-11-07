@@ -22,6 +22,29 @@ jobs:
           xcodebuild -version
           swift --version
 
+      - name: SDK diagnostics (AVCaptureDevice white balance API)
+        run: |
+          SDK=$(xcrun --sdk iphoneos --show-sdk-path)
+          echo "== AVCaptureWhiteBalanceGains typedef =="
+          grep -rn -A6 "AVCaptureWhiteBalanceGains" "$SDK/System/Library/Frameworks/AVFoundation.framework/Headers/" | head -40
+          echo "== white balance methods =="
+          grep -rn -i "whitebalance\|chromaticity\|temperatureAndTint" "$SDK/System/Library/Frameworks/AVFoundation.framework/Headers/AVCaptureDevice.h" | head -40
+          echo "== swift interface =="
+          echo 'import AVFoundation' > /tmp/probe.swift
+          xcrun swift-api-digester -dump-sdk -module AVFoundation -o /tmp/avapi.json -swift-version 5 >/dev/null 2>&1 && python3 - <<'PY' || echo "api-digester unavailable"
+          import json
+          d = json.load(open('/tmp/avapi.json'))
+          def walk(o):
+              if isinstance(o, dict):
+                  n = o.get('name', '')
+                  if 'WhiteBalance' in n or 'whiteBalance' in n or 'hromaticity' in n:
+                      print(n)
+                  for v in o.values(): walk(v)
+              elif isinstance(o, list):
+                  for v in o: walk(v)
+          walk(d)
+          PY
+
       - name: Build (Release / iphoneos, unsigned)
         run: |
           xcodebuild build \
